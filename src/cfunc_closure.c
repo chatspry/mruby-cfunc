@@ -1,6 +1,6 @@
 //
 //  CFunc::Closure class
-// 
+//
 //  See Copyright Notice in cfunc.h
 //
 
@@ -67,11 +67,11 @@ cfunc_closure_initialize(mrb_state *mrb, mrb_value self)
     data->mrb = mrb;
     data->closure = NULL;
     data->arg_types = NULL;
-    
+
     mrb_value rettype_mrb, block, args_mrb;
     mrb_get_args(mrb, "&oo", &block, &rettype_mrb, &args_mrb);
     data->argc = RARRAY_LEN(args_mrb);
-    
+
     ffi_type *return_ffi_type = rclass_to_mrb_ffi_type(mrb, mrb_class_ptr(rettype_mrb))->ffi_type_value;
     data->return_type = rettype_mrb;
 
@@ -82,16 +82,16 @@ cfunc_closure_initialize(mrb_state *mrb, mrb_value self)
         data->arg_types[i] = mrb_ary_ref(mrb, args_mrb, i);
         data->arg_ffi_types[i] = rclass_to_mrb_ffi_type(mrb, mrb_class_ptr(data->arg_types[i]))->ffi_type_value;
     }
-    
+
     mrb_iv_set(mrb, self, mrb_intern_cstr(data->mrb, "@block"), block);
 
     void *closure_pointer = NULL;
     data->closure = ffi_closure_alloc(sizeof(ffi_closure) + sizeof(void*), &closure_pointer);
     data->cif = mrb_malloc(mrb, sizeof(ffi_cif));
-    
+
     if (data->closure) {
         if (ffi_prep_cif(data->cif, FFI_DEFAULT_ABI, data->argc, return_ffi_type, data->arg_ffi_types) == FFI_OK) {
-            if (ffi_prep_closure_loc(data->closure, data->cif, cfunc_closure_call_binding, mrb_object(self), closure_pointer) == FFI_OK) {
+            if (ffi_prep_closure_loc(data->closure, data->cif, cfunc_closure_call_binding, mrb_obj_ptr(self), closure_pointer) == FFI_OK) {
                 set_cfunc_pointer_data((struct cfunc_type_data *)data, closure_pointer);
                 return self;
             }
@@ -127,7 +127,7 @@ cfunc_closure_call_binding(ffi_cif *cif, void *ret, void **args, void *self_)
 
     mrb_value ret_pointer = cfunc_pointer_new_with_pointer(data->mrb, ret, false);
     mrb_funcall(data->mrb, data->return_type, "set", 2, ret_pointer, result);
-    
+
     mrb_gc_arena_restore(data->mrb, ai);
 }
 

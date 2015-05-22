@@ -1,6 +1,6 @@
 //
 //  CFunc Basic types
-// 
+//
 //  See Copyright Notice in cfunc.h
 //
 
@@ -66,7 +66,7 @@ mrb_value_to_mrb_ffi_type(mrb_state *mrb, mrb_value val)
         case MRB_TT_FALSE:
             return rclass_to_mrb_ffi_type(mrb, cfunc_state(mrb, NULL)->sint32_class);
         default:
-            return rclass_to_mrb_ffi_type(mrb, mrb_object(val)->c);
+            return rclass_to_mrb_ffi_type(mrb, mrb_obj_ptr(val)->c);
     }
 }
 
@@ -102,12 +102,12 @@ cfunc_type_initialize(mrb_state *mrb, mrb_value self)
     data->autofree = false;
     data->refer = false;
     DATA_PTR(self) = data;
-    DATA_TYPE(self) = &cfunc_type_data;   
+    DATA_TYPE(self) = &cfunc_type_data;
 
     mrb_value val;
     int argc = mrb_get_args(mrb, "|o", &val);
     if(argc > 0) {
-        struct mrb_ffi_type *mft = rclass_to_mrb_ffi_type(mrb, mrb_object(self)->c);
+        struct mrb_ffi_type *mft = rclass_to_mrb_ffi_type(mrb, mrb_obj_ptr(self)->c);
         if(mft && mft->mrb_to_data) {
             mft->mrb_to_data(mrb, val, data);
         }
@@ -164,7 +164,7 @@ mrb_value
 cfunc_type_get_value(mrb_state *mrb, mrb_value self)
 {
     struct cfunc_type_data *data = (struct cfunc_type_data*)DATA_PTR(self);
-    struct mrb_ffi_type *mft = rclass_to_mrb_ffi_type(mrb, mrb_object(self)->c);
+    struct mrb_ffi_type *mft = rclass_to_mrb_ffi_type(mrb, mrb_obj_ptr(self)->c);
     return mft->data_to_mrb(mrb, data);
 }
 
@@ -174,9 +174,9 @@ cfunc_type_set_value(mrb_state *mrb, mrb_value self)
 {
     mrb_value val;
     mrb_get_args(mrb, "o", &val);
-    
+
     struct cfunc_type_data *data = (struct cfunc_type_data*)DATA_PTR(self);
-    struct mrb_ffi_type *mft = rclass_to_mrb_ffi_type(mrb, mrb_object(self)->c);
+    struct mrb_ffi_type *mft = rclass_to_mrb_ffi_type(mrb, mrb_obj_ptr(self)->c);
     mft->mrb_to_data(mrb, val, data);
 
     return val;
@@ -210,7 +210,7 @@ mrb_value int64_to_mrb(mrb_state *mrb, int64_t val)
     }
     else {
         return mrb_fixnum_value(val);
-    }   
+    }
 }
 
 static
@@ -219,7 +219,7 @@ int64_t mrb_to_int64(mrb_state *mrb, mrb_value val)
     switch(mrb_type(val)) {
     case MRB_TT_FIXNUM:
         return mrb_fixnum(val);
-     
+
     case MRB_TT_FLOAT:
         return mrb_float(val);
 
@@ -236,7 +236,7 @@ int64_t mrb_to_int64(mrb_state *mrb, mrb_value val)
             switch(mrb_type(result)) {
             case MRB_TT_FIXNUM:
                 return mrb_fixnum(result);
-             
+
             case MRB_TT_FALSE:
                 return 0;
 
@@ -261,7 +261,7 @@ mrb_float float_value(mrb_state *mrb, mrb_value val)
     switch(mrb_type(val)) {
     case MRB_TT_FIXNUM:
         return mrb_fixnum(val);
-     
+
     case MRB_TT_FLOAT:
         return mrb_float(val);
 
@@ -278,7 +278,7 @@ mrb_float float_value(mrb_state *mrb, mrb_value val)
             switch(mrb_type(result)) {
             case MRB_TT_FLOAT:
                 return mrb_float(result);
-             
+
             case MRB_TT_FALSE:
                 return 0.0;
 
@@ -289,7 +289,7 @@ mrb_float float_value(mrb_state *mrb, mrb_value val)
                 return 0.0; // can't reach here
             }
         }
-        
+
     default:
         mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
             mrb_obj_classname(mrb, val));
@@ -325,15 +325,15 @@ cfunc_uint64_divide(mrb_state *mrb, mrb_value self)
     if(data->refer) {
         uint64 = *(uint64_t*)data->value._pointer;
     }
-    
+
     mrb_get_args(mrb, "o", &mdivider);
-    divider = mrb_fixnum(mdivider);    
+    divider = mrb_fixnum(mdivider);
     result = uint64 / divider;
-    
+
     if(result > UINT32_MAX) {
         mrb_raise(mrb, E_TYPE_ERROR, "result too big.");
     }
-    
+
     return int64_to_mrb(mrb, uint64 / divider );
 }
 
@@ -367,7 +367,7 @@ cfunc_uint64_set_low(mrb_state *mrb, mrb_value self)
 {
     mrb_value val;
     mrb_get_args(mrb, "o", &val);
-    
+
     struct cfunc_type_data *data = (struct cfunc_type_data*)DATA_PTR(self);
     data->value._uint64 = (data->value._uint64 & 0xffffffff00000000) | (((uint64_t)mrb_to_int64(mrb, val)) & 0xffffffff);
     return val;
@@ -387,10 +387,10 @@ cfunc_uint64_set_high(mrb_state *mrb, mrb_value self)
 {
     mrb_value val;
     mrb_get_args(mrb, "o", &val);
-    
+
     struct cfunc_type_data *data = (struct cfunc_type_data*)DATA_PTR(self);
     data->value._uint64 = (data->value._uint64 & 0x00000000ffffffff) | (((uint64_t)mrb_to_int64(mrb, val)) << 32);
-    
+
     return val;
 }
 
@@ -664,7 +664,7 @@ void init_cfunc_type(mrb_state *mrb, struct RClass* module)
         mrb_obj_iv_set(mrb, (struct RObject*)new_class, mrb_intern_cstr(mrb, "@ffi_type"), ffi_type);
     }
     DONE;
-    
+
     mrb_value mod = mrb_obj_value(module);
     state->void_class = mrb_class_ptr(mrb_const_get(mrb, mod, mrb_intern_cstr(mrb, "Void")));
     state->uint8_class = mrb_class_ptr(mrb_const_get(mrb, mod, mrb_intern_cstr(mrb, "UInt8")));
@@ -694,7 +694,7 @@ void init_cfunc_type(mrb_state *mrb, struct RClass* module)
     mrb_define_method(mrb, uint64_class, "to_s", cfunc_uint64_to_s, ARGS_REQ(1));
     mrb_define_method(mrb, uint64_class, "divide", cfunc_uint64_divide, ARGS_REQ(1));
     DONE;
-    
+
     // sint64 specific
     struct RClass *sint64_class = state->sint64_class;
     mrb_define_class_method(mrb, sint64_class, "get", cfunc_sint64_class_get, ARGS_REQ(1));

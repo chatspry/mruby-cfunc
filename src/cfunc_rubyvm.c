@@ -1,6 +1,6 @@
 //
 //  CFunc::RubyVM class
-// 
+//
 //  See Copyright Notice in cfunc.h
 //
 
@@ -90,9 +90,9 @@ struct task_arg* mrb_value_to_task_arg(mrb_state *mrb, mrb_value v)
     case MRB_TT_STRING:
         {
             struct RString *str = mrb_str_ptr(v);
-            arg->value.string.len = str->len;
+            arg->value.string.len = RSTR_LEN(str);
             arg->value.string.ptr = mrb_malloc(mrb, arg->value.string.len+1);
-            memcpy(arg->value.string.ptr, str->ptr, arg->value.string.len+1);
+            memcpy(arg->value.string.ptr, RSTR_PTR(str), arg->value.string.len+1);
         }
         break;
 
@@ -242,7 +242,7 @@ cfunc_rubyvm_open(void *args)
     struct cfunc_rubyvm_data *data = args;
     mrb_state *mrb = mrb_open();
     data->state = mrb;
-    
+
 #ifdef DISABLE_GEMS
     init_cfunc_module(mrb);
 #endif
@@ -261,7 +261,7 @@ cfunc_rubyvm_open(void *args)
         while(data->queue->length == 0) {
             pthread_cond_wait(&data->queue_cond, &data->queue_mutex);
         }
-        
+
         struct queue_task *task = vector_dequeue(data->queue);
         task->status = queue_task_running;
         mrb_sym taskname = mrb_intern_cstr(mrb, task->name);

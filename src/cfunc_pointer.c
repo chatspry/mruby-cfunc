@@ -1,6 +1,6 @@
 //
 //  CFunc::Pointer class
-// 
+//
 //  See Copyright Notice in cfunc.h
 //
 
@@ -68,9 +68,9 @@ cfunc_pointer_class_malloc(mrb_state *mrb, mrb_value klass)
 
     mrb_int alloc_size;
     mrb_get_args(mrb, "i", &alloc_size);
-    
+
     set_cfunc_pointer_data(data, mrb_malloc(mrb, alloc_size));
-    
+
     return mrb_obj_value(Data_Wrap_Struct(mrb, mrb_class_ptr(klass), &cfunc_pointer_data_type, data));
 }
 
@@ -116,7 +116,7 @@ cfunc_pointer_initialize(mrb_state *mrb, mrb_value self)
     if(!data) {
         data = mrb_malloc(mrb, sizeof(struct cfunc_type_data));
         DATA_PTR(self) = data;
-        DATA_TYPE(self) = &cfunc_pointer_data_type;   
+        DATA_TYPE(self) = &cfunc_pointer_data_type;
     }
     data->refer = false;
     data->autofree = false;
@@ -138,11 +138,11 @@ mrb_value
 cfunc_pointer_realloc(mrb_state *mrb, mrb_value self)
 {
     struct cfunc_type_data *data = DATA_PTR(self);
-    
+
     mrb_int alloc_size;
     mrb_get_args(mrb, "i", &alloc_size);
     set_cfunc_pointer_data(data, mrb_realloc(mrb, get_cfunc_pointer_data(data), alloc_size));
-    
+
     return self;
 }
 
@@ -151,11 +151,11 @@ mrb_value
 cfunc_pointer_free(mrb_state *mrb, mrb_value self)
 {
     struct cfunc_type_data *data = DATA_PTR(self);
-    
+
     mrb_free(mrb, get_cfunc_pointer_data(data));
     data->autofree = false;
     set_cfunc_pointer_data(data, NULL);
-    
+
     return self;
 }
 
@@ -164,16 +164,16 @@ mrb_value
 cfunc_pointer_inspect(mrb_state *mrb, mrb_value self)
 {
     struct cfunc_type_data *data = DATA_PTR(self);
-    
+
     mrb_value type = mrb_funcall(mrb, mrb_obj_value(mrb_class(mrb, self)), "type", 0);
-    const char* classname = mrb_class_name(mrb, (struct RClass*)mrb_object(type));
+    const char* classname = mrb_class_name(mrb, (struct RClass*)mrb_obj_ptr(type));
     if(!classname) {
         classname = "Unknown pointer";
     }
 
     char cstr[256];
     snprintf(cstr, sizeof(cstr), "<%s pointer=%p>", classname, get_cfunc_pointer_data(data));
-    
+
     return mrb_str_new_cstr(mrb, cstr);
 }
 
@@ -203,12 +203,12 @@ cfunc_pointer_to_s(mrb_state *mrb, mrb_value self)
     mrb_value str;
     struct RString *s;
     const char* p = (const char*)get_cfunc_pointer_data(data);
-        
+
     len = strlen(p);
     str = mrb_str_new(mrb, 0, len);
     s = mrb_str_ptr(str);
-    strcpy(s->ptr, p);
-    s->len = strlen(s->ptr);
+    strcpy(s->as.heap.ptr, p);
+    s->as.heap.len = strlen(s->as.heap.ptr);
     return str;
 }
 
@@ -252,7 +252,7 @@ cfunc_pointer_addr(mrb_state *mrb, mrb_value self)
 static mrb_value
 cfunc_string_addr(mrb_state *mrb, mrb_value self)
 {
-    mrb_value ptr = cfunc_pointer_new_with_pointer(mrb, &RSTRING_PTR(self), false);
+    mrb_value ptr = cfunc_pointer_new_with_pointer(mrb, RSTRING_PTR(self), false);
     mrb_obj_iv_set(mrb, mrb_obj_ptr(ptr), mrb_intern_cstr(mrb, "parent_pointer"), self); // keep for GC
     return ptr;
 }
@@ -335,7 +335,7 @@ init_cfunc_pointer(mrb_state *mrb, struct RClass* module)
 
     mrb_define_method(mrb, pointer_class, "offset", cfunc_pointer_offset, ARGS_REQ(1));
     mrb_define_method(mrb, pointer_class, "to_s", cfunc_pointer_to_s, ARGS_NONE());
-    
+
     // add method to system classes
     mrb_define_method(mrb, mrb->string_class, "addr", cfunc_string_addr, ARGS_NONE());
     mrb_obj_iv_set(mrb, (struct RObject *)mrb->string_class, mrb_intern_cstr(mrb, "@ffi_type"), ffi_type);
